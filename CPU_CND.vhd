@@ -32,7 +32,7 @@ begin
     alu_y_signe <= signed (alu_y(31) & alu_y) when extension_signe = '1' else signed ('0' & alu_y);
     resultat <= rs1_signe - alu_y_signe;
     z <= '1' when resultat = "000000000000000000000000000000000" else '0';
-    slt <= '0' when resultat = "000000000000000000000000000000000" or resultat(32) = '0' else '1';    
+    slt <= '0' when resultat(32) = '0' else '1';
     jcond <= ((IR(12) xor z) and not IR(14)) or (IR(14) and (IR(12) xor slt));
             
 

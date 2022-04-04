@@ -46,7 +46,9 @@ architecture RTL of CPU_PC is
         S_SRLI,
         S_AUIPC,
         S_COMPARE_BRANCH,
-        S_COMPARE_SET
+        S_COMPARE_SET_REGISTRE,
+        S_COMPARE_SET_IMM
+
     );
 
     signal state_d, state_q : State_type;
@@ -277,26 +279,23 @@ begin
 
                 --beq bne bge bgeu blt bltu
                 if ( status.IR(14 downto 12) = "000" and status.IR(6 downto 0) = "1100011" ) or ( status.IR(14 downto 12) = "101" and status.IR(6 downto 0) = "1100011" ) or ( status.IR(14 downto 12) = "111" and status.IR(6 downto 0) = "1100011" ) or ( status.IR(14 downto 12) = "100" and status.IR(6 downto 0) = "1100011" ) or ( status.IR(14 downto 12) = "110" and status.IR(6 downto 0) = "1100011" ) or ( status.IR(14 downto 12) = "001" and status.IR(6 downto 0) = "1100011" ) then
-                    cmd.ALU_Y_sel <= ALU_Y_immI;
                     state_d <= S_COMPARE_BRANCH;
                 else
 
                 --sltu slt
                 if ( status.IR(31 downto 25) = "0000000" and status.IR(14 downto 12) = "010" and status.IR(6 downto 0) = "0110011" ) or ( status.IR(31 downto 25) = "0000000" and status.IR(14 downto 12) = "011" and status.IR(6 downto 0) = "0110011" ) then
-                    cmd.ALU_Y_sel <= ALU_Y_rf_rs2;
                     cmd.TO_PC_Y_sel <= TO_PC_Y_cst_x04;
                     cmd.PC_sel <= PC_from_pc;
                     cmd.PC_we <= '1';
-                    state_d <= S_COMPARE_SET;
+                    state_d <= S_COMPARE_SET_REGISTRE;
                 else
 
                 --slti sltiu
                 if ( status.IR(14 downto 12) = "010" and status.IR(6 downto 0) = "0010011" ) or ( status.IR(14 downto 12) = "011" and status.IR(6 downto 0) = "0010011" ) then
-                    cmd.ALU_Y_sel <= ALU_Y_immI;
                     cmd.TO_PC_Y_sel <= TO_PC_Y_cst_x04;
                     cmd.PC_sel <= PC_from_pc;
                     cmd.PC_we <= '1';
-                    state_d <= S_COMPARE_SET;
+                    state_d <= S_COMPARE_SET_IMM;
                 else
 
                 --error
@@ -545,6 +544,7 @@ begin
                 state_d <= S_Pre_Fetch;
 
             when S_COMPARE_BRANCH =>
+                cmd.ALU_Y_sel <= ALU_Y_rf_rs2;
                 -- saute si condition et continue
                 if status.jcond = true then
                     cmd.TO_PC_Y_sel <= TO_PC_Y_immB;
@@ -556,7 +556,21 @@ begin
                 state_d <= S_Pre_Fetch;
                 
 
-            when S_COMPARE_SET =>
+            when S_COMPARE_SET_REGISTRE =>
+                cmd.ALU_Y_sel <= ALU_Y_rf_rs2;
+                --ecrit le bon truc dans le registre
+                cmd.DATA_sel <= DATA_from_slt;
+                cmd.RF_we <= '1';
+                -- lecture mem[PC]
+                cmd.ADDR_sel <= ADDR_from_pc;
+                cmd.mem_ce <= '1';
+                cmd.mem_we <= '0';
+                -- next state
+                state_d <= S_Fetch;
+                
+
+            when S_COMPARE_SET_IMM =>
+                cmd.ALU_Y_sel <= ALU_Y_immI;
                 --ecrit le bon truc dans le registre
                 cmd.DATA_sel <= DATA_from_slt;
                 cmd.RF_we <= '1';
