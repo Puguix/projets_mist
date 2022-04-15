@@ -92,6 +92,11 @@ begin
         end if;
     end process gpr_flip_flops;
 
+    TO_CSR <= rs1 when cmd.TO_CSR_sel = TO_CSR_from_rs1 else imm;
+
+    mstatus_waiting <= TO_CSR(31 downto 4) & '1' & TO_CSR(2 downto 0) when cmd.MSTATUS_mie_set = '1' else
+            TO_CSR(31 downto 4) & '0' & TO_CSR(2 downto 0) when cmd.MSTATUS_mie_reset = '1' else
+            TO_CSR;
 
     -- Calcul des entrées des registres
     gpr_input_selection : process (all)
@@ -106,12 +111,7 @@ begin
         mtvec_in <= mtvec_out;
         mepc_in <= mepc_out;
         
-        TO_CSR <= rs1 when cmd.TO_CSR_sel = TO_CSR_from_rs1 else imm;
-
-        mstatus_waiting <= TO_CSR(31 downto 4) & '1' & TO_CSR(2 downto 0) when cmd.MSTATUS_mie_set = '1' else
-                TO_CSR(31 downto 4) & '0' & TO_CSR(2 downto 0) when cmd.MSTATUS_mie_reset = '1' else
-                TO_CSR;
-
+        
         -- Mise a jour des registres
         case cmd.CSR_we is
             when CSR_mie =>
@@ -121,7 +121,11 @@ begin
             when CSR_mtvec =>
                 mtvec_in <= CSR_write( TO_CSR, mtvec_out, cmd.CSR_WRITE_mode)(31 downto 2) & "00";
             when CSR_mepc =>
-                mepc_in <= CSR_write( pc, mepc_out, cmd.CSR_WRITE_mode) when cmd.MEPC_sel = MEPC_from_pc else CSR_write( TO_CSR, mepc_out, cmd.CSR_WRITE_mode)(31 downto 2) & "00";
+                if cmd.MEPC_sel = MEPC_from_pc then 
+                    mepc_in <=  CSR_write( pc, mepc_out, cmd.CSR_WRITE_mode);
+                else 
+                    mepc_in <=  CSR_write( TO_CSR, mepc_out, cmd.CSR_WRITE_mode)(31 downto 2) & "00";
+                end if;
             when others => null;
         end case;
 

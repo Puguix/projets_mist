@@ -748,11 +748,46 @@ begin
                 --rd <= csr
                 cmd.RF_we <= '1';
                 cmd.DATA_sel <= DATA_from_csr;
+                -- ou qu'on lit?
+                --mie
+                if status.IR(31 downto 20) = "001100000100" then
+                    cmd.cs.CSR_sel <= CSR_from_mie;
+                --mstatus
+                elsif status.IR(31 downto 20) = "001100000000" then
+                    cmd.cs.CSR_sel <= CSR_from_mstatus;
+                --mcause
+                elsif status.IR(31 downto 20) = "001101000010" then
+                    cmd.cs.CSR_sel <= CSR_from_mcause;
+                --mip
+                elsif status.IR(31 downto 20) = "001101000100" then
+                    cmd.cs.CSR_sel <= CSR_from_mip;
+                --mtvec
+                elsif status.IR(31 downto 20) = "001100000101" then
+                    cmd.cs.CSR_sel <= CSR_from_mtvec;
+                --mepc
+                else
+                    cmd.cs.CSR_sel <= CSR_from_mepc;
+                end if;
                 -- next state
                 state_d <= S_CSRR2;
 
             when S_CSRR2 =>
                 --csr <= rs ou imm
+                -- ou qu'on ecrit?
+                --mie
+                if status.IR(31 downto 20) = "001100000100" then
+                    cmd.cs.CSR_we <= CSR_mie;
+                --mstatus
+                elsif status.IR(31 downto 20) = "001100000000" then
+                    cmd.cs.CSR_we <= CSR_mstatus;
+                --mtvec
+                elsif status.IR(31 downto 20) = "001100000101" then
+                    cmd.cs.CSR_we <= CSR_mtvec;
+                --mepc
+                else
+                    cmd.cs.CSR_we <= CSR_mepc;
+                end if;
+
                 --csrrw
                 if ( status.IR(14 downto 12) = "001" and status.IR(6 downto 0) = "1110011" ) then
                     cmd.cs.TO_CSR_sel <= TO_CSR_from_rs1;
@@ -778,6 +813,7 @@ begin
                     cmd.cs.TO_CSR_sel <= TO_CSR_from_imm;
                     cmd.cs.CSR_WRITE_mode <= WRITE_mode_clear;
                 end if;
+
                 -- lecture mem[PC]
                 cmd.ADDR_sel <= ADDR_from_pc;
                 cmd.mem_ce <= '1';
